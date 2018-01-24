@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bsit.mapper.MessageCodeMapper" >
+
+	<resultMap id="resultMap" type="com.bsit.model.MessageCode">
+		<id property="id" column="id" jdbcType="VARCHAR"/>
+		<result column="mobile" property="mobile"  jdbcType="VARCHAR"/>
+		<result column="message" property="message" jdbcType="VARCHAR"/>
+		<result column="create_time" property="createTime" jdbcType="VARCHAR"/>
+		<result column="product_name" property="productName" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="addMessageCode" parameterType="com.bsit.model.MessageCode">
+		insert into message_code(
+			mobile,
+			message,
+			create_time,
+			product_name
+		)
+		values(
+			#{mobile, jdbcType = VARCHAR},
+			#{message, jdbcType = VARCHAR},
+			#{createTime, jdbcType = VARCHAR},
+			#{productName, jdbcType = VARCHAR}
+		)
+	</insert>
+	
+	<select id="getMessageCodeByLast" resultMap="resultMap">
+		select * from message_code where mobile = #{0} and product_name = #{1}
+		order by create_time DESC
+		limit 1
+	</select>
+	
+	<select id="getMessageCodeCount" resultType="java.lang.Integer" parameterType="java.util.Map">
+		select count(*) from message_code 
+		where 
+			mobile = #{ mobile } 
+		and 
+			create_time between #{ startTime,jdbcType=DATE } and #{ endTime,jdbcType=DATE }
+	</select>
+	
+</mapper>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:jaxws="http://cxf.apache.org/jaxws"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans.xsd 
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd 
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+	http://cxf.apache.org/jaxws http://cxf.apache.org/schemas/jaxws.xsd" >
+	
+	<!-- 引入CXF需要的xml文件 -->
+	<import resource="classpath:META-INF/cxf/cxf.xml"/>  
+    <import resource="classpath:META-INF/cxf/cxf-extension-soap.xml"/>  
+    <import resource="classpath:META-INF/cxf/cxf-servlet.xml"/> 
+    <!-- 引入webService的业务配置文件 -->
+	<!-- <import resource="classpath:webservice/messageCode.xml" /> -->
+
+	<!-- 引入属性文件 -->
+	<context:property-placeholder location="classpath:config.properties" />
+	
+	<!--数据库连接-->  
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">   
+    	<property name="driverClassName" value="${driver}" />
+        <property name="url" value="${jdbc_url}" />  
+        <property name="username" value="${jdbc_username}"/>  
+        <property name="password" value="${jdbc_password}"/>  
+        <!-- 初始化连接大小 -->  
+        <property name="initialSize" value="${initialSize}"></property> 
+        <!-- 连接池最大数量 -->
+        <property name="maxActive" value="${maxActive}"></property> 
+    	<!-- 连接池最小空闲 -->
+        <property name="minIdle" value="${minIdle}"></property>  
+        <!-- 获取连接最大等待时间 -->
+        <property name="maxWait" value="${maxWait}"></property>  
+        <!-- 配置监控统计拦截的filters -->  
+        <property name="filters"><value>stat</value></property>  
+        <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->  
+        <property name="timeBetweenEvictionRunsMillis"><value>60000</value></property>  
+        <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->  
+        <property name="minEvictableIdleTimeMillis"><value>300000</value></property>  
+    </bean>  
+    
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+       <property name="dataSource" ref="dataSource" />
+       <property name="configLocation" value="classpath:spring-mybatis.xml" />
+       <property name="mapperLocations" value="classpath:mappers/**/*.xml" />
+    </bean>
+    
+    <!-- mapper接口所在包名，Spring会自动查找其下的类 --> 
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">  
+    	<property name="basePackage" value="com.bsit.mapper" />  
+	</bean>
+    
+	<!-- 配置事务管理器，注意这里的dataSource和SqlSessionFactoryBean的dataSource要一致，不然事务就没有作用了 -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+    <!-- 启用注解事务 -->
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+    
+    <bean id="wall-filter-config" class="com.alibaba.druid.wall.WallConfig" init-method="init">
+		<property name="dir" value="META-INF/druid/wall/oracle" />
+		<property name="selectUnionCheck" value="false"></property>
+	      <!-- 指定配置装载的目录  -->
+    </bean>
+  
+	<bean id="wall-filter" class="com.alibaba.druid.wall.WallFilter">
+       <property name="config" ref="wall-filter-config" />
+    </bean>
+    
+	<!-- 配置druid监控spring jdbc -->
+	<bean id="druid-stat-interceptor"
+		class="com.alibaba.druid.support.spring.stat.DruidStatInterceptor">
+	</bean>
+	<bean id="druid-stat-pointcut" class="org.springframework.aop.support.JdkRegexpMethodPointcut"
+		scope="prototype">
+	</bean>
+	<aop:config>
+		<aop:advisor advice-ref="druid-stat-interceptor"
+			pointcut-ref="druid-stat-pointcut" />
+	</aop:config>
+</beans>
